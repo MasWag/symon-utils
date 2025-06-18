@@ -1,0 +1,56 @@
+#!/usr/local/bin/symon -nf
+######################################
+# NAME
+#  java_keep_high_load.symon
+#
+# SYNOPSIS
+#  ./java_keep_high_load.symon
+#
+# DESCRIPTION
+#  This example reports if no high load of java process is found for a while.
+#
+# USAGE
+#  ../src/cpu_stream.sh java | ./java_keep_high_load.symon
+#
+# AUTHOR
+#  Masaki Waga
+#
+# LICENSE
+#  Apache License, Version 2.0
+######################################
+
+signature CPU {
+    name: string;
+    load: number;
+}
+
+expr ignoreIrrelevant {
+    zero_or_more {
+        CPU(name, load)
+    }
+}
+
+expr onlyLowLoadIfJava {
+    zero_or_more {
+        one_of {
+            # Java
+            CPU(name, load | name == "java" && load < 80)
+        } or {
+            # Non-Java
+            CPU(name, load | name != "java")
+        }
+    }
+}
+
+expr main {
+    ignoreIrrelevant;
+    within (> 30) {
+        # TODO: This upper bound is not used as an invariant in the current construction
+        within (<= 30) {
+            onlyLowLoadIfJava
+        }
+    };
+    CPU(name, load)
+}
+
+main
